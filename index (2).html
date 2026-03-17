@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sorting Visualizer</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  text-align: center;
+}
+h1 { margin-top: 20px; }
+.controls { margin: 20px; }
+button, select { padding: 10px; margin: 5px; font-size: 14px; border-radius: 8px; border: none; cursor: pointer; }
+button:hover { opacity: 0.8; }
+#container { display: flex; justify-content: center; align-items: flex-end; height: 350px; margin: 20px; }
+.bar { width: 15px; margin: 2px; background: #00ffcc; border-radius: 3px; }
+.slider { width: 200px; }
+#aiChoice { font-weight: bold; margin-top: 10px; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Sorting Visualizer</h1>
+
+<div class="controls">
+  <button onclick="generateArray()">Generate Array</button>
+  <select id="algorithm">
+    <option value="bubble">Bubble Sort</option>
+    <option value="quick">Quick Sort</option>
+    <option value="merge">Merge Sort</option>
+    <option value="ai">AI Pick</option>
+  </select>
+  <button onclick="startSort()">Start Sorting</button>
+  <br><br>
+  Speed: <input type="range" min="1" max="100" value="50" class="slider" id="speedSlider">
+  <div id="aiChoice"></div>
+</div>
+
+<div id="container"></div>
+
+<script>
+let array = [];
+let delay = 50;
+
+function generateArray() {
+  const container = document.getElementById("container");
+  container.innerHTML = "";
+  array = [];
+  for (let i = 0; i < 40; i++) {
+    let value = Math.floor(Math.random() * 300) + 20;
+    array.push(value);
+    let bar = document.createElement("div");
+    bar.classList.add("bar");
+    bar.style.height = value + "px";
+    container.appendChild(bar);
+  }
+  document.getElementById("aiChoice").innerText = "";
+}
+
+function getSpeed() {
+  return 101 - document.getElementById("speedSlider").value;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function startSort() {
+  delay = getSpeed();
+  let algo = document.getElementById("algorithm").value;
+
+  if (algo === "ai") {
+    algo = pickBestAlgorithm();
+    document.getElementById("aiChoice").innerText = `🤖 AI picked: ${algo}`;
+  }
+
+  if (algo === "bubble") await bubbleSort();
+  if (algo === "quick") await quickSort(0, array.length - 1);
+  if (algo === "merge") await mergeSort(0, array.length - 1);
+
+  markSorted();
+}
+
+function pickBestAlgorithm() {
+  // AI logic: array size & disorder
+  let size = array.length;
+  let disorder = 0;
+  for (let i = 0; i < size - 1; i++) {
+    if (array[i] > array[i + 1]) disorder++;
+  }
+  let disorderRatio = disorder / size;
+
+  if (size <= 20) return "bubble";
+  if (size > 20 && disorderRatio < 0.3) return "merge";
+  return "quick";
+}
+
+function getBars() { return document.getElementsByClassName("bar"); }
+
+async function bubbleSort() {
+  let bars = getBars();
+  for (let i = 0; i < array.length; i++) {
+    for (let j = 0; j < array.length - i - 1; j++) {
+      bars[j].style.background = "red";
+      bars[j+1].style.background = "red";
+      await sleep(delay);
+      if (array[j] > array[j+1]) swap(j,j+1,bars);
+      bars[j].style.background = "#00ffcc";
+      bars[j+1].style.background = "#00ffcc";
+    }
+  }
+}
+
+function swap(i,j,bars){
+  let temp = array[i]; array[i]=array[j]; array[j]=temp;
+  bars[i].style.height = array[i]+"px";
+  bars[j].style.height = array[j]+"px";
+}
+
+async function quickSort(low, high){
+  if(low<high){
+    let pi = await partition(low, high);
+    await quickSort(low, pi-1);
+    await quickSort(pi+1, high);
+  }
+}
+
+async function partition(low, high){
+  let bars = getBars();
+  let pivot = array[high];
+  let i = low-1;
+  for(let j=low;j<high;j++){
+    bars[j].style.background="orange"; await sleep(delay);
+    if(array[j]<pivot){ i++; swap(i,j,bars); }
+    bars[j].style.background="#00ffcc";
+  }
+  swap(i+1,high,bars);
+  return i+1;
+}
+
+async function mergeSort(l,r){
+  if(l>=r) return;
+  let m = Math.floor((l+r)/2);
+  await mergeSort(l,m);
+  await mergeSort(m+1,r);
+  await merge(l,m,r);
+}
+
+async function merge(l,m,r){
+  let bars = getBars();
+  let left = array.slice(l,m+1);
+  let right = array.slice(m+1,r+1);
+  let i=0,j=0,k=l;
+  while(i<left.length && j<right.length){
+    bars[k].style.background="yellow"; await sleep(delay);
+    if(left[i]<=right[j]) array[k]=left[i++];
+    else array[k]=right[j++];
+    bars[k].style.height=array[k]+"px";
+    bars[k].style.background="#00ffcc";
+    k++;
+  }
+  while(i<left.length){ array[k]=left[i++]; bars[k].style.height=array[k]+"px"; k++; }
+  while(j<right.length){ array[k]=right[j++]; bars[k].style.height=array[k]+"px"; k++; }
+}
+
+function markSorted(){ let bars=getBars(); for(let bar of bars){ bar.style.background="lime"; } }
+
+generateArray();
+</script>
+<footer>&copy; Asel Induwara</footer>
+
+</body>
+</html>
